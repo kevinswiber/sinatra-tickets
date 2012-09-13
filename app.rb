@@ -3,13 +3,26 @@ require 'sinatra/activerecord'
 require 'sinatra/url_for'
 require './config/environments'
 require 'pg'
+require 'securerandom'
+require 'rexml/document'
+
+include REXML
+
+helpers do
+  def prep_xml(raw_xml)
+    xmldoc = Document.new raw_xml
+
+    # strip out xml prolog
+    xmldoc.root.to_s
+  end
+end
 
 before do
   db = URI.parse(ENV['DATABASE_URL'] || 'postgres://localhost/restdesk')
   conn = PG.connect \
     :host => db.host,
-    :user => db.user,
-    :password => db.password,
+    #:user => db.user,
+    #:password => db.password,
     :dbname => db.path[1..-1]
   set :db, conn
 end
@@ -30,10 +43,22 @@ end
 
 # Get/search tickets collection
 get '/tickets' do
+  rs = settings.db.exec("SELECT xmlagg(payload) FROM tickets")
+  tickets = rs.getvalue(0,0)
+
   erb :tickets, :locals => {
     :self_url => url_for("/tickets", :full),
-    :tickets => '<ticket></ticket>' # TODO: insert real ticket(s) here
+    :tickets => tickets
   }
+end
+
+# Create ticket
+post '/tickets' do
+  ticket_xml = prep_xml(request.body.read)
+  uuid = SecureRandom.uuid
+  settings.db.exec("INSERT INTO tickets (uuid, payload) VALUES ($1, XMLPARSE(CONTENT $2))", [uuid, ticket_xml])
+
+  [201, {"Content-Location" => url_for("/tickets/#{uuid}", :full)}, '']
 end
 
 # Get/search comments collection
