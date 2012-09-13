@@ -66,7 +66,7 @@ post '/tickets' do
 end
 
 # Get/search comments collection
-get %r{/tickets/([\w\d]+)/comments} do
+get %r{/tickets/([\w\d\-]+)/comments} do
   ticket_id = params[:captures].first
 
   erb :comments, :locals => {
@@ -75,20 +75,65 @@ get %r{/tickets/([\w\d]+)/comments} do
   }
 end
 
+post %r{/tickets/([\w\d\-]+)/comments} do
+  ticket_id = params[:captures].first
+
+  rs = settings.db.exec("SELECT uuid FROM tickets WHERE uuid = $1", [ticket_id])
+  
+  if rs.num_tuples.zero?
+    [404]
+  else
+    comment_xml = prep_xml(request.body.read)
+    uuid = SecureRandom.uuid
+    settings.db.exec("INSERT INTO comments (uuid, payload) VALUES ($1, XMLPARSE(CONTENT $2))", [uuid, comment_xml])
+
+    [201, {"Content-Location" => url_for("/tickets/#{ticket_id}/comments/#{uuid}")}, '']
+  end
+end
+
+# Create a user
+post '/users' do
+  user_xml = prep_xml(request.body.read)
+  uuid = SecureRandom.uuid
+  settings.db.exec("INSERT INTO users (uuid, payload) VALUES ($1, XMLPARSE(CONTENT $2))", [uuid, user_xml])
+
+  [201, {"Content-Location" => url_for("/users/#{uuid}", :full)}, '']
+end
+
+# Get a user
+get %r{/user/([\w\d\-])+} do
+  user_id = params[:captures].first
+
+  rs = settings.db.exec("SELECT payload FROM users WHERE uuid = $1", [user_id])
+
+  if rs.num_tuples.zero?
+    [404]
+  else
+    user = rs.getvalue(0, 0)
+    [200, user.to_s]
+  end
+end
+
 # Get/search users collection
 get '/users' do
+  rs = settings.db.exec("SELECT xmlagg(payload) FROM users")
+  users = rs.getvalue(0,0)
+
   erb :users, :locals => {
     :self_url => url_for("/users", :full),
-    :users => '<user></user>' # TODO: insert real user(s) here
+    :users => users
   }
 end
 
 # Change log
 get '/changes' do
+  rs = settings.db.exec("SELECT xmlagg(payload) FROM changes ORDER BY created_at DESC")
+  changes = rs.getvalue(0,0)
+
   erb :changes, :locals => {
     :self_url => url_for("/changes", :full),
     :from_iso_time => '2012-09-13T12:01:00Z', # TODO: real from time here (ISO8601)
     :to_iso_time => '2012-09-13T12:01:59Z', # TODO: real to time here (ISO8601)
-    :events => '<events></events>' # TODO: insert real event(s) here
+    :events => changes
   }
 end
