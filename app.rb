@@ -5,7 +5,6 @@ require './config/environments'
 require 'pg'
 
 before do
-  puts ENV['DATABASE_URL']
   db = URI.parse(ENV['DATABASE_URL'] || 'postgres://localhost/restdesk')
   conn = PG.connect \
     :host => db.host,
