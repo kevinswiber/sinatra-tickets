@@ -21,8 +21,8 @@ before do
   db = URI.parse(ENV['DATABASE_URL'] || 'postgres://localhost/restdesk')
   conn = PG.connect \
     :host => db.host,
-    #:user => db.user,
-    #:password => db.password,
+    :user => db.user,
+    :password => db.password,
     :dbname => db.path[1..-1]
   set :db, conn
 end
