@@ -27,6 +27,10 @@ before do
   set :db, conn
 end
 
+after do
+  settings.db.finish() unless settings.db.finished?
+end
+
 before do
   content_type "application/vnd.org.restfest.2012.hackday+xml"
 end
