@@ -26,6 +26,11 @@ helpers do
     # strip out xml prolog
     xmldoc.root.to_s
   end
+
+  def log_change(type, xml)
+    uuid = SecureRandom.uuid
+    settings.db.exec("INSERT INTO changes (uuid, payload, change_type, created_at) VALUES ($1, $2, $3, $4)", [uuid, xml, type, Time.now])
+  end
 end
 
 before do
@@ -84,6 +89,7 @@ post '/tickets' do
   uuid = SecureRandom.uuid
   ticket_xml = prep_xml(request.body.read, uuid, url_for("/tickets/#{uuid}", :full))
   settings.db.exec("INSERT INTO tickets (uuid, payload) VALUES ($1, XMLPARSE(CONTENT $2))", [uuid, ticket_xml])
+  log_change("ticket_creation", ticket_xml)
   [201, {"Content-Location" => url_for("/tickets/#{uuid}", :full)}, '']
 end
 
@@ -124,7 +130,7 @@ post '/users' do
   uuid = SecureRandom.uuid
   user_xml = prep_xml(request.body.read, uuid, url_for("/users/#{uuid}", :full))
   settings.db.exec("INSERT INTO users (uuid, payload) VALUES ($1, XMLPARSE(CONTENT $2))", [uuid, user_xml])
-
+  log_change("user_creation", user_xml)
   [201, {"Content-Location" => url_for("/users/#{uuid}", :full)}, '']
 end
 
@@ -168,13 +174,11 @@ end
 
 # Change log
 get '/changes' do
-  rs = settings.db.exec("SELECT xmlagg(payload) FROM changes ORDER BY created_at DESC")
-  changes = rs.getvalue(0,0)
+  rs = settings.db.exec("SELECT created_at, change_type, payload FROM changes ORDER BY created_at DESC")
+  changes = rs
 
   erb :changes, :locals => {
     :self_url => url_for("/changes", :full),
-    :from_iso_time => '2012-09-13T12:01:00Z', # TODO: real from time here (ISO8601)
-    :to_iso_time => '2012-09-13T12:01:59Z', # TODO: real to time here (ISO8601)
-    :events => changes
+    :changes => changes
   }
 end
