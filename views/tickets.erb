@@ -1,0 +1,13 @@
+<tickets:tickets
+  xmlns="urn:org.restfest.2012.hackday.helpdesk.ticket"
+  xmlns:tickets="urn:org.restfest.2012.hackday.helpdesk.tickets"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:comments="urn:org.restfest.2012.hackday.helpdesk.user" 
+>
+  <atom:link rel="self" href="<%= self_url %>?sort=time&amp;order=desc&amp;page=1" type="application/vnd.org.restfest.2012.hackday+xml" />
+  <atom:link rel="next" href="<%= self_url %>?sort=time&amp;order=desc&amp;page=1" type="application/vnd.org.restfest.2012.hackday+xml" />
+  <atom:link rel="last" href="<%= self_url %>?sort=time&amp;order=desc&amp;page=7" type="application/vnd.org.restfest.2012.hackday+xml" />
+  
+  <%= tickets %>
+  
+</tickets>

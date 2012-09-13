@@ -1,0 +1,24 @@
+<changes
+  xmlns="urn:org.restfest.2012.hackday.helpdesk.feed"
+  xmlns:ticket="urn:org.restfest.2012.hackday.helpdesk.ticket"
+  xmlns:comment="urn:org.restfest.2012.hackday.helpdesk.comment"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+>
+  <atom:link rel="self" type="application/vnd.org.restfest.2012.hackday+xml" href="<%= self_url %>?from=2012-09-13T12:01:00Z&amp;to=2012-09-13T12:01:59Z" />
+
+  <!-- TODO: implement prev/next relations -->
+  <!--
+  <atom:link rel="prev" type="application/vnd.org.restfest.2012.hackday+xml" href="<%= self_url %>?from=2012-09-13T12:00:00Z&amp;to=2012-09-13T12:00:59Z" />
+  <atom:link rel="next" type="application/vnd.org.restfest.2012.hackday+xml" href="<%= self_url %>?from=2012-09-13T12:02:00Z&amp;to=2012-09-13T12:02:59Z" />
+  -->
+  
+  <from><%= from_iso_time %></from>
+  <to><%= to_iso_time %></to>
+  
+  <%= events %>
+  
+  <xhtml:form rel="http://helpdesk.hackday.2012.restfest.org/rels/changes" action="<%= self_url %>" type="application/vnd.org.restfest.2012.hackday+xml" method="get">
+    <input type="datetime" name="from" />
+    <input type="datetime" name="to" />
+  </xhtml:form>
+</changes>
