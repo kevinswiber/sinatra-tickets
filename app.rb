@@ -72,7 +72,11 @@ get '/tickets/:id' do
   rs = settings.db.exec("SELECT xmlagg(payload) FROM tickets WHERE uuid = $1", [params[:id]])
   ticket = rs.getvalue(0,0)
 
-  [200, ticket.to_s]
+  if ticket.nil?
+    halt 404
+  else
+    [200, ticket.to_s]
+  end
 end
 
 # Create a ticket
@@ -129,11 +133,11 @@ get %r{/user/([\w\d\-])+} do
   user_id = params[:captures].first
 
   rs = settings.db.exec("SELECT payload FROM users WHERE uuid = $1", [user_id])
+  user = rs.getvalue(0, 0)
 
-  if rs.num_tuples.zero?
-    [404]
+  if user.nil?
+    halt 404
   else
-    user = rs.getvalue(0, 0)
     [200, user.to_s]
   end
 end
@@ -147,6 +151,19 @@ get '/users' do
     :self_url => url_for("/users", :full),
     :users => users
   }
+end
+
+# Get/search tickets collection
+get '/users/:id' do
+  rs = settings.db.exec("SELECT xmlagg(payload) FROM users WHERE uuid = $1", [params[:id]])
+
+  user = rs.getvalue(0,0)
+
+  if user.nil?
+    halt 404
+  else
+    [200, user.to_s]
+  end
 end
 
 # Change log
