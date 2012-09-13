@@ -2,6 +2,18 @@ require 'sinatra'
 require 'sinatra/activerecord'
 require 'sinatra/url_for'
 require './config/environments'
+require 'pg'
+
+before do
+  puts ENV['DATABASE_URL']
+  db = URI.parse(ENV['DATABASE_URL'] || 'postgres://localhost/restdesk')
+  conn = PG.connect \
+    :host => db.host,
+    :user => db.user,
+    :password => db.password,
+    :dbname => db.path[1..-1]
+
+end
 
 # Home
 get '/' do
