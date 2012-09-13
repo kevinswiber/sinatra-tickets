@@ -1,5 +1,5 @@
 configure :development, :test do
-  set :database, 'sqlite://development.db'
+  set :database, 'sqlite:///development.db'
 end
 
 configure :production do
