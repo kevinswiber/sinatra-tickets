@@ -13,14 +13,15 @@ helpers do
     xmldoc = Document.new raw_xml
 
     # add self relation link
-    xmldoc.elements.delete('//atom:link[@rel="self"]')
     self_link = Element.new("link")
-    self_link.add_namespace("atom", "http://www.w3.org/2005/Atom")
     self_link.add_attributes({
       "rel" => "self",
       "href" => self_url,
       "type" => "application/vnd.org.restfest.2012.hackday+xml"
     })
+
+    xmldoc.elements.delete('/*/atom:link[@rel="self"]')
+    xmldoc.root.add_namespace("atom", "http://www.w3.org/2005/Atom")
     xmldoc.root.add_element(self_link)
 
     # strip out xml prolog
@@ -88,6 +89,24 @@ end
 post '/tickets' do
   uuid = SecureRandom.uuid
   ticket_xml = prep_xml(request.body.read, uuid, url_for("/tickets/#{uuid}", :full))
+
+  xmldoc = Document.new(ticket_xml)
+  xmldoc.add_namespace("comments", "urn:org.restfest.2012.hackday.helpdesk.comments")
+  xmldoc.elements.delete("/*/comments:comments")
+
+  comments_link = Element.new("atom:link")
+  comments_link.add_attributes({
+    "rel" => "http://helpdesk.hackday.2012.restfest.org/rels/comments",
+    "href" => url_for("/tickets/#{uuid}/comments", :full),
+    "type" => "application/vnd.org.restfest.2012.hackday+xml"
+  })
+
+  comments = Element.new("comments")
+  comments.add_element(comments_link)
+  xmldoc.root.add_element(comments)
+
+  ticket_xml = xmldoc.to_s
+
   settings.db.exec("INSERT INTO tickets (uuid, payload) VALUES ($1, XMLPARSE(CONTENT $2))", [uuid, ticket_xml])
   log_change("ticket_creation", ticket_xml)
   [201, {"Content-Location" => url_for("/tickets/#{uuid}", :full)}, '']
