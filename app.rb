@@ -9,8 +9,19 @@ require 'rexml/document'
 include REXML
 
 helpers do
-  def prep_xml(raw_xml)
+  def prep_xml(raw_xml, uuid, self_url)
     xmldoc = Document.new raw_xml
+
+    # add self relation link
+    xmldoc.elements.delete('//atom:link[@rel="self"]')
+    self_link = Element.new("link")
+    self_link.add_namespace("atom", "http://www.w3.org/2005/Atom")
+    self_link.add_attributes({
+      "rel" => "self",
+      "href" => self_url,
+      "type" => "application/vnd.org.restfest.2012.hackday+xml"
+    })
+    xmldoc.root.add_element(self_link)
 
     # strip out xml prolog
     xmldoc.root.to_s
@@ -56,13 +67,26 @@ get '/tickets' do
   }
 end
 
-# Create ticket
-post '/tickets' do
-  ticket_xml = prep_xml(request.body.read)
-  uuid = SecureRandom.uuid
-  settings.db.exec("INSERT INTO tickets (uuid, payload) VALUES ($1, XMLPARSE(CONTENT $2))", [uuid, ticket_xml])
+# Get/search tickets collection
+get '/tickets/:id' do
+  rs = settings.db.exec("SELECT xmlagg(payload) FROM tickets WHERE uuid = $1", [params[:id]])
+  ticket = rs.getvalue(0,0)
 
+  [200, ticket.to_s]
+end
+
+# Create a ticket
+post '/tickets' do
+  uuid = SecureRandom.uuid
+  ticket_xml = prep_xml(request.body.read, uuid, url_for("/tickets/#{uuid}", :full))
+  settings.db.exec("INSERT INTO tickets (uuid, payload) VALUES ($1, XMLPARSE(CONTENT $2))", [uuid, ticket_xml])
   [201, {"Content-Location" => url_for("/tickets/#{uuid}", :full)}, '']
+end
+
+# Update a ticket
+put %r{/tickets/([\w\d\-]+)} do
+  ticket_id = params[:captures].first
+  [501, 'PUT method not yet implemented']
 end
 
 # Get/search comments collection
@@ -93,8 +117,8 @@ end
 
 # Create a user
 post '/users' do
-  user_xml = prep_xml(request.body.read)
   uuid = SecureRandom.uuid
+  user_xml = prep_xml(request.body.read, uuid, url_for("/users/#{uuid}", :full))
   settings.db.exec("INSERT INTO users (uuid, payload) VALUES ($1, XMLPARSE(CONTENT $2))", [uuid, user_xml])
 
   [201, {"Content-Location" => url_for("/users/#{uuid}", :full)}, '']
