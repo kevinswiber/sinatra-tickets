@@ -11,7 +11,7 @@ before do
     :user => db.user,
     :password => db.password,
     :dbname => db.path[1..-1]
-
+  set :db, conn
 end
 
 before do
